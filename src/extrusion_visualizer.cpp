@@ -96,6 +96,7 @@ int main(int argc, char **argv) {
     elements.scale.y = extrusion_diameter;
     elements.scale.z = extrusion_diameter;
     elements.color = color;
+    elements.pose.orientation = element_rot;
 
     ros::Publisher extrusion_pub = node_handle.advertise<visualization_msgs::Marker>("extruded_material", 10);
 
@@ -105,6 +106,7 @@ int main(int argc, char **argv) {
         //TODO Subscribe to coord of the ee, check abweichung zu letztem schleifendurchgang und male evtl neues element
         geometry_msgs::Pose p2 = move_group.getCurrentPose().pose;
         geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
+        elements.points.push_back(p2.position);
         extrusion_pub.publish(elements);
         //TODO checken wie viel mist schon in elements drin ist
         ros::spinOnce();
