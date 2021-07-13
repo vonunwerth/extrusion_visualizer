@@ -1,0 +1,6 @@
+<launch>
+  <node name="extrusion_visualizer" pkg="extrusion_visualizer" type="extrusion_visualizer" output="screen">
+    <rosparam command="load" file="$(find extrusion_visualizer)/config/extrusion.yaml"/>
+  </node>
+
+</launch>
