@@ -4,16 +4,33 @@
 #include <moveit_visual_tools/moveit_visual_tools.h>
 #include <moveit/kinematics_metrics/kinematics_metrics.h>
 #include <tf/tf.h>
+#include <tf2/utils.h>
 #include <rosbag/bag.h>
 #include <cmath>
 #include <csignal>
 #include <rosbag/view.h>
 #include <cstdio>
+#include <tf/transform_listener.h>
 
 /**
  * Calculation result data structure
  */
 visualization_msgs::Marker elements;
+
+/**
+ * Last marker position
+ */
+geometry_msgs::TransformStamped last_marker;
+
+/**
+ * Return the difference of two positions
+ * @param lhs Point
+ * @param rhs Point
+ * @return difference in m
+ */
+double operator- (const geometry_msgs::Vector3 & lhs, const geometry_msgs::Vector3 & rhs) {
+    return sqrt(pow(lhs.x - rhs.x, 2) + pow(lhs.y - rhs.y, 2) + pow(lhs.z - rhs.z, 2));
+}
 
 //TODO ggf größe von dauer abhängig machen also wirklich "Druck" simulieren über Größe der Elemente
 /**
@@ -100,13 +117,36 @@ int main(int argc, char **argv) {
 
     ros::Publisher extrusion_pub = node_handle.advertise<visualization_msgs::Marker>("extruded_material", 10);
 
+    tf2_ros::Buffer tfBuffer;
+    tf2_ros::TransformListener tfListener(tfBuffer);
+
     ros::AsyncSpinner spinner(1);
     spinner.start();
     while (ros::ok()) {
         //TODO Subscribe to coord of the ee, check abweichung zu letztem schleifendurchgang und male evtl neues element
-        geometry_msgs::Pose p2 = move_group.getCurrentPose().pose;
-        geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
-        elements.points.push_back(p2.position);
+//        geometry_msgs::Pose p2 = move_group.getCurrentPose().pose; //TODO tf zu odom
+//        geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
+
+        geometry_msgs::TransformStamped transformStamped;
+        try{
+            transformStamped = tfBuffer.lookupTransform("ur10_wrist_3_link", "odom",
+                                                        ros::Time(0));
+        }
+        catch (tf2::TransformException &ex) {
+            ROS_WARN("%s",ex.what());
+        }
+
+
+        ROS_INFO("%f", (last_marker.transform.translation - transformStamped.transform.translation));
+        geometry_msgs::TransformStamped new_marker = transformStamped;
+        if ((last_marker.transform.translation - new_marker.transform.translation) > resolution) { // returned falsche werte //TODO http://wiki.ros.org/tf change notifier worth a look
+            geometry_msgs::Point position;
+            position.x = new_marker.transform.translation.x;
+            position.y = new_marker.transform.translation.y;
+            position.z = new_marker.transform.translation.z;
+            elements.points.push_back(position);
+            last_marker = new_marker;
+        }
         extrusion_pub.publish(elements);
         //TODO checken wie viel mist schon in elements drin ist
         ros::spinOnce();
