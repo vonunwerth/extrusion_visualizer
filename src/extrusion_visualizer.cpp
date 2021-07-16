@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
 
         geometry_msgs::TransformStamped transformStamped;
         try{
-            transformStamped = tfBuffer.lookupTransform("ur10_wrist_3_link", "odom",
+            transformStamped = tfBuffer.lookupTransform("odom", "ur10_ee_link",
                                                         ros::Time(0));
         }
         catch (tf2::TransformException &ex) {
