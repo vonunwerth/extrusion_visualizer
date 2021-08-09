@@ -42,7 +42,6 @@ void toggle_extrusion(const std_msgs::Bool msg) {
     extrusion = msg.data;
 }
 
-//TODO ggf größe von dauer abhängig machen also wirklich "Druck" simulieren über Größe der Elemente
 /**
  * Visualizes extrusion elements
  * @param argc Not used
@@ -121,7 +120,7 @@ int main(int argc, char **argv) {
     elements.action = visualization_msgs::Marker::ADD;
     elements.id = 0;
     elements.type = visualization_msgs::Marker::CUBE_LIST;
-    elements.scale.x = extrusion_diameter; //TODO depending on resolution
+    elements.scale.x = extrusion_diameter;
     elements.scale.y = extrusion_diameter;
     elements.scale.z = extrusion_diameter;
     elements.color = color;
@@ -136,7 +135,7 @@ int main(int argc, char **argv) {
     ros::AsyncSpinner spinner(1);
     spinner.start();
     while (ros::ok()) {
-//        geometry_msgs::Pose p2 = move_group.getCurrentPose().pose; //TODO tf zu odom
+//        geometry_msgs::Pose p2 = move_group.getCurrentPose().pose; // tf zu odom
 //        geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
 
         geometry_msgs::TransformStamped transformStamped;
