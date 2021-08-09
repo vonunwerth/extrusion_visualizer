@@ -11,6 +11,12 @@
 #include <rosbag/view.h>
 #include <cstdio>
 #include <tf/transform_listener.h>
+#include <std_msgs/Bool.h>
+
+/**
+ * Only add new markers, if extrusion is true
+ */
+bool extrusion;
 
 /**
  * Calculation result data structure
@@ -28,8 +34,12 @@ geometry_msgs::TransformStamped last_marker;
  * @param rhs Point
  * @return difference in m
  */
-double operator- (const geometry_msgs::Vector3 & lhs, const geometry_msgs::Vector3 & rhs) {
+double operator-(const geometry_msgs::Vector3 &lhs, const geometry_msgs::Vector3 &rhs) {
     return sqrt(pow(lhs.x - rhs.x, 2) + pow(lhs.y - rhs.y, 2) + pow(lhs.z - rhs.z, 2));
+}
+
+void toggle_extrusion(const std_msgs::Bool msg) {
+    extrusion = msg.data;
 }
 
 //TODO ggf größe von dauer abhängig machen also wirklich "Druck" simulieren über Größe der Elemente
@@ -42,6 +52,8 @@ double operator- (const geometry_msgs::Vector3 & lhs, const geometry_msgs::Vecto
 int main(int argc, char **argv) {
     ros::init(argc, argv, "extrusion_visualizer");
     ros::NodeHandle node_handle("~"); // Allow access to private ROS parameters
+
+    extrusion = false;
 
     // Load the planning group parameter from the configuration
     std::string planning_group;
@@ -79,7 +91,7 @@ int main(int argc, char **argv) {
     node_handle.param("type", type, 0);
 
     float rate;
-    node_handle.param("rate", rate, 1.0f);
+    node_handle.param("rate", rate, 10.0f);
     ros::Rate loop_rate(rate);
 
     moveit::planning_interface::MoveGroupInterface move_group(planning_group);
@@ -116,6 +128,7 @@ int main(int argc, char **argv) {
     elements.pose.orientation = element_rot;
 
     ros::Publisher extrusion_pub = node_handle.advertise<visualization_msgs::Marker>("extruded_material", 10);
+    ros::Subscriber sub = node_handle.subscribe("/extrude", 1, toggle_extrusion);
 
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener(tfBuffer);
@@ -123,32 +136,32 @@ int main(int argc, char **argv) {
     ros::AsyncSpinner spinner(1);
     spinner.start();
     while (ros::ok()) {
-        //TODO Subscribe to coord of the ee, check abweichung zu letztem schleifendurchgang und male evtl neues element
 //        geometry_msgs::Pose p2 = move_group.getCurrentPose().pose; //TODO tf zu odom
 //        geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
 
         geometry_msgs::TransformStamped transformStamped;
-        try{
+        try {
             transformStamped = tfBuffer.lookupTransform("odom", "ur10_ee_link",
                                                         ros::Time(0));
         }
         catch (tf2::TransformException &ex) {
-            ROS_WARN("%s",ex.what());
+            ROS_WARN("%s", ex.what());
         }
 
-
-        ROS_INFO("%f", (last_marker.transform.translation - transformStamped.transform.translation));
-        geometry_msgs::TransformStamped new_marker = transformStamped;
-        if ((last_marker.transform.translation - new_marker.transform.translation) > resolution) { // returned falsche werte //TODO http://wiki.ros.org/tf change notifier worth a look
-            geometry_msgs::Point position;
-            position.x = new_marker.transform.translation.x;
-            position.y = new_marker.transform.translation.y;
-            position.z = new_marker.transform.translation.z;
-            elements.points.push_back(position);
-            last_marker = new_marker;
+        if (extrusion) {
+            ROS_INFO("%f", (last_marker.transform.translation - transformStamped.transform.translation));
+            geometry_msgs::TransformStamped new_marker = transformStamped;
+            if ((last_marker.transform.translation - new_marker.transform.translation) >
+            resolution) {
+                geometry_msgs::Point position;
+                position.x = new_marker.transform.translation.x;
+                position.y = new_marker.transform.translation.y;
+                position.z = new_marker.transform.translation.z;
+                elements.points.push_back(position);
+                last_marker = new_marker;
+            }
         }
         extrusion_pub.publish(elements);
-        //TODO checken wie viel mist schon in elements drin ist
         ros::spinOnce();
         loop_rate.sleep();
     }

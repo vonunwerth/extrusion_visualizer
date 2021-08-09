@@ -3,7 +3,7 @@ manipulator_base_link: "ur10_base_link" # base link of the manipulator, default:
 base_frame: "odom"
 resolution: 0.05 # in which intervals should be placed new extrusion elements
 type: 0 # 0: Cube list, 1: Sphere list or 2: Point list - default: 0, refering the display marker types, more here: http://wiki.ros.org/rviz/DisplayTypes/Marker
-rate: 10 # rate in Hz in which a position change can be detected, default: 10
+rate: 100 # rate in Hz in which a position change can be detected, default: 10
 
 extrusion_diameter: 0.05 # diameter respectively side length of the extruded elements, default: 0.1;
 
