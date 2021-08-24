@@ -7,8 +7,6 @@
 #include <tf2/utils.h>
 #include <rosbag/bag.h>
 #include <cmath>
-#include <csignal>
-#include <rosbag/view.h>
 #include <cstdio>
 #include <tf/transform_listener.h>
 #include <std_msgs/Bool.h>
@@ -38,6 +36,10 @@ double operator-(const geometry_msgs::Vector3 &lhs, const geometry_msgs::Vector3
     return sqrt(pow(lhs.x - rhs.x, 2) + pow(lhs.y - rhs.y, 2) + pow(lhs.z - rhs.z, 2));
 }
 
+/**
+ * Turn extrusion of or off
+ * @param msg on: true, off: false
+ */
 void toggle_extrusion(const std_msgs::Bool msg) {
     extrusion = msg.data;
 }
@@ -135,9 +137,6 @@ int main(int argc, char **argv) {
     ros::AsyncSpinner spinner(1);
     spinner.start();
     while (ros::ok()) {
-//        geometry_msgs::Pose p2 = move_group.getCurrentPose().pose; // tf zu odom
-//        geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
-
         geometry_msgs::TransformStamped transformStamped;
         try {
             transformStamped = tfBuffer.lookupTransform("odom", "ur10_ee_link",
